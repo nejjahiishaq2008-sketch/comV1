@@ -144,7 +144,7 @@ error2: # ne trouve pas l'unité de connexion, verifiez son flag ou si elle exis
     jump error always 0 0
 
 
-# ps : error 3 was for an ancient version of the code 
+# ps : error 3 was for an ancient version of the code and now this part of the code is usless
 error3: # ne peut envoyer toute les informations sur com car trop nombreuse 
     print "error : too many server to send in com!"
     jump error always 0 0
