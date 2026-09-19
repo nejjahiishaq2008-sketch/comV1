@@ -83,7 +83,7 @@ login_to_main: # cherche l'unité de connexion
 
             skip2:
                 op add i i 1
-                jump error4 equal i 512
+                jump error3 equal i 512
                 jump search_local_serv always 0 0
 
         find: # se connecte au serveur et envoie et previens l'utilisateur que sa tache et fini
@@ -100,7 +100,7 @@ login_to_main: # cherche l'unité de connexion
         sensor local_type local_serv @type
         jump login equal local_type @memory-cell # vérifie s'il y a bien un serveur 
         jump login equal local_type @memory-bank
-        jump error5 always 0 0
+        jump error4 always 0 0
 
         login: # se connecte au serveur et previens l'utilisateur que sa tache et fini  
             write 0 com 63
@@ -110,7 +110,7 @@ login_to_main: # cherche l'unité de connexion
             jump loop always 0 0
 
     read: # lis une donnée a un emplacement choisi par l'utilisateur 
-        jump error6 strictEqual current_serv null
+        jump error5 strictEqual current_serv null
         read slot com 1
         read data current_serv slot
         write data com 2
@@ -120,7 +120,7 @@ login_to_main: # cherche l'unité de connexion
         jump loop always 0 0
 
     write: # écris une donnée a un emplacement choisi par l'utilisateur 
-        jump error6 strictEqual current_serv null
+        jump error5 strictEqual current_serv null
         read slot com 1
         read new_data com 2
         read data current_serv slot
@@ -144,12 +144,9 @@ error2: # ne trouve pas l'unité de connexion, verifiez son flag ou si elle exis
     jump error always 0 0
 
 
-# ps : error 3 was for an ancient version of the code and now this part of the code is usless
-error3: # ne peut envoyer toute les informations sur com car trop nombreuse 
-    print "error : too many server to send in com!"
-    jump error always 0 0
 
-error4: # ne trouve pas le serveur avec le nom donné par l'utilisateur 
+
+error3: # ne trouve pas le serveur avec le nom donné par l'utilisateur 
     print "error : the server {0} was not found!"
     format id
     write -2 com 63
@@ -157,14 +154,14 @@ error4: # ne trouve pas le serveur avec le nom donné par l'utilisateur
     set current_serv null
     jump error always 0 0
 
-error5: # il n'y a pas de serveur a l'emplacement donné par l'utilisateur 
+error4: # il n'y a pas de serveur a l'emplacement donné par l'utilisateur 
     print "error : there is no server at canal {0}!"
     format canal
     write -2 com 63
     write 0 com 0
     jump error always 0 0
 
-error6: # l'utilisateur veut lire ou ércire sur un serveur alors qu'il ne s'y est pas connecter 
+error5: # l'utilisateur veut lire ou ércire sur un serveur alors qu'il ne s'y est pas connecter 
     write -2 com 63
     write 0 com 0
     print "error : no server was choose by the user"
