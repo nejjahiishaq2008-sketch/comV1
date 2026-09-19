@@ -42,6 +42,15 @@ login_to_main: # cherche l'unité de connexion
         format name
         printflush message1
         read request com 0
+        jump pass equal current_serv null # check if he's connected to a server  
+        read serv_name current_serv 0 
+        jump pass notEqual serv_name null # check if he still has acsess to the server 
+        set current_serv null 
+        print "warning : conexion with the server lost"
+        printflush message2
+
+        pass:
+
         jump send_list equal request 1
         jump log_to_serv equal request 2
         jump log_to_serv_with_canal equal request 3

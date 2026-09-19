@@ -4,35 +4,50 @@
 
 
 setup: # va initialiser la configuration du serveur principale
-set address 177013 
-ubind @flare
-getlink serv 0 
+    set address 177013
+    ubind @flare
+    getlink serv 0
 
-sensor servType serv @type 
+    sensor servType serv @type
 
-jump setup strictEqual @unit null # vérifie que le serveur est opérationelle 
-jump setup notEqual servType @memory-bank 
+    jump setup strictEqual @unit null # vérifie que le serveur est opérationelle 
+    jump setup notEqual servType @memory-bank
 
-set unit @unit 
+    set unit @unit
 
-sensor cap serv @memoryCapacity
-set i 0 
+    sensor cap serv @memoryCapacity
+    set i 0
 
 clear: # initialise le serveur en lui même
-write -1 serv i 
-op add i i 1 
-jump clear lessThan i cap 
+    write -1 serv i
+    op add i i 1
+    jump clear lessThan i cap
 
+    set n 0
 
 loop: # rends le serveurs accsesible a tous 
 
-ubind unit
-sensor x serv @x 
-sensor y serv @y
+    ubind unit
+    sensor x serv @x
+    sensor y serv @y
 
-ucontrol flag address 
-ucontrol move x y 
+    ucontrol flag address
+    ucontrol move x y
 
+    read data serv n # read the list of server 
+    sensor data_type data @type
+    jump check equal data_type @memory-cell # check if it's a server 
+    jump check equal data_type @memory-bank
+    jump pass always 0 0
 
-jump loop always 0 0 
+check:
+    read serv_name data 0
+    jump pass notEqual serv_name null # check he can acsess to the server, if not that's mean the server 
+    write -1 serv n # was destroyed and has to be remove from the list of server
 
+pass:
+
+    op add n n 1
+    op mod n n 512
+
+    jump loop always 0 0
