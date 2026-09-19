@@ -1,0 +1,38 @@
+
+# protocole server : un flare avec un son flag a 177013 sera placer au dessus d'une banque de donnée 
+# qui contiendra la liste de tous les serveurs disponible et il ne devra en y avoir qu'un par map 
+
+
+setup: # va initialiser la configuration du serveur principale
+set address 177013 
+ubind @flare
+getlink serv 0 
+
+sensor servType serv @type 
+
+jump setup strictEqual @unit null # vérifie que le serveur est opérationelle 
+jump setup notEqual servType @memory-bank 
+
+set unit @unit 
+
+sensor cap serv @memoryCapacity
+set i 0 
+
+clear: # initialise le serveur en lui même
+write -1 serv i 
+op add i i 1 
+jump clear lessThan i cap 
+
+
+loop: # rends le serveurs accsesible a tous 
+
+ubind unit
+sensor x serv @x 
+sensor y serv @y
+
+ucontrol flag address 
+ucontrol move x y 
+
+
+jump loop always 0 0 
+

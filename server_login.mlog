@@ -1,0 +1,194 @@
+# c'est par ce processeur qu'il faudra passer pour acceder au serveur 
+# les requêtes passeront par une cellule mémoire qui servira de moyens de communication entre ce 
+# processeur et l'utilisateur 
+# liste des requêtes : 
+# com 0 0 --> attends  
+# com 0 1 --> retourne le nombre de serv et la liste des servereurs avec leurs type et leurs version
+# com 0 2 --> se connecte au serveur avec le nom sur com 1  
+# com 0 3 --> se connecte au serveur avec le canal sur com 1 
+# com 0 4 --> retourne la valeur lu sur le serveur actuelle a l'emplacement com 1 sur com2
+# com 0 5 --> écrits sur le serveur actuelle la valeur com 2 a l'emplacement com 1 et retourne la valeur
+# écraser sur com 3 
+# 
+# si le processeur n'arrive pas a se connecter au serveur principale alors com 0 --> -1 
+# si le processeur n'arrive pas a se connecter au serveur secondaire alors com 0 --> -2 
+
+set address 177013 # le flag de l'unité de connexion 
+set com cell1 # interface de communication entre l'utilisateur et ce processeur 
+set current_serv null
+jump error1 equal com null
+
+set i 0
+
+login_to_main: # cherche l'unité de connexion 
+    ubind @flare
+    sensor flag @unit @flag
+    jump sucsessed equal flag address
+    op add i i 1
+    jump error2 equal i 24
+    jump login_to_main always 0 0
+
+
+    sucsessed: # se connecte au serveur principale 
+        sensor mx @unit @x
+        sensor my @unit @y
+        ucontrol getBlock mx my 0 mainServ 0
+
+
+    loop: # attends les instruction de l'utilisateur 
+        print "connexion to main server sucssed, waiting for request from user\n"
+        print "current server : {0}"
+        read name current_serv 0
+        format name
+        printflush message1
+        read request com 0
+        jump send_list equal request 1
+        jump log_to_serv equal request 2
+        jump log_to_serv_with_canal equal request 3
+        jump read equal request 4
+        jump write equal request 5
+
+        jump loop always 0 0
+
+    send_list: # récupere les information de tous les serveur présents 
+        set i 0
+        set n 2
+        set num 0
+
+        loop_to_list: # verifie que le serveur héberger est bien un serveur
+            read local_serv mainServ i
+            sensor local_type local_serv @type
+            jump login_to_local_serv equal local_type @memory-cell
+            jump login_to_local_serv equal local_type @memory-bank
+            jump skip1 always 0 0
+
+            login_to_local_serv: # se connecte au serveur pour récuperer ses information 
+                jump error3 greaterThan n 60
+                op add num num 1
+                read local_name local_serv 0
+                read local_model local_serv 1
+                read local_ver local_serv 2
+
+                write local_name com n # envoie les infos 
+                op add n n 1
+                write local_model com n
+                op add n n 1
+                write local_ver com n
+                op add n n 1
+
+            skip1:
+                op add i i 1
+                jump send equal i 512
+                jump loop_to_list always 0 0
+
+        send: # précise qu'il a fini sa tache 
+            write num com 1
+            write 0 com 0
+            printflush message1
+            printflush message2
+            jump loop always 0 0
+
+    log_to_serv: # se connecte au serveur avec un noms donné par l'utilisateur 
+        read id com 1
+        set i 0
+
+        search_local_serv: # recherche parmi les serveurs 
+            read local_serv mainServ i
+            sensor local_type local_serv @type
+            jump try equal local_type @memory-cell
+            jump try equal local_type @memory-bank
+            jump skip2 always 0 0
+
+            try: # verifie s'il le serveur a le même noms 
+                read local_name local_serv 0
+                jump find equal local_name id
+
+            skip2:
+                op add i i 1
+                jump error4 equal i 512
+                jump search_local_serv always 0 0
+
+        find: # se connecte au serveur et envoie et previens l'utilisateur que sa tache et fini
+            set current_serv local_serv
+            write 0 com 0
+            write 0 com 63
+            printflush message2
+            jump loop always 0 0
+
+    log_to_serv_with_canal: # se connecte a un serveur avec son emplacement dans le serveur principale
+        set current_serv null
+        read canal com 1
+        read local_serv mainServ canal
+        sensor local_type local_serv @type
+        jump login equal local_type @memory-cell # vérifie s'il y a bien un serveur 
+        jump login equal local_type @memory-bank
+        jump error5 always 0 0
+
+        login: # se connecte au serveur et previens l'utilisateur que sa tache et fini  
+            write 0 com 63
+            write 0 com 0
+            set current_serv local_serv
+            printflush message2
+            jump loop always 0 0
+
+    read: # lis une donnée a un emplacement choisi par l'utilisateur 
+        jump error6 strictEqual current_serv null
+        read slot com 1
+        read data current_serv slot
+        write data com 2
+        write 0 com 63
+        write 0 com 0
+        printflush message2
+        jump loop always 0 0
+
+    write: # écris une donnée a un emplacement choisi par l'utilisateur 
+        jump error6 strictEqual current_serv null
+        read slot com 1
+        read new_data com 2
+        read data current_serv slot
+        write data com 3
+        write new_data current_serv slot
+        write 0 com 63
+        write 0 com 0
+        printflush message2
+        jump loop always 0 0
+
+
+# les possible erreur que le processeur peut avoir 
+error1: # le processeur n'a pas de moyen de communiquer avec l'utilisateur 
+    print "error : no memory cell was found!"
+    jump error always 0 0
+
+error2: # ne trouve pas l'unité de connexion, verifiez son flag ou si elle existe encore 
+    print "error : can't login to the main server with address {0}"
+    format address
+    write -1 com 63
+    jump error always 0 0
+
+error3: # ne peut envoyer toute les informations sur com car trop nombreuse 
+    print "error : too many server to send in com!"
+    jump error always 0 0
+
+error4: # ne trouve pas le serveur avec le nom donné par l'utilisateur 
+    print "error : the server {0} was not found!"
+    format id
+    write -2 com 63
+    write 0 com 0
+    set current_serv null
+    jump error always 0 0
+
+error5: # il n'y a pas de serveur a l'emplacement donné par l'utilisateur 
+    print "error : there is no server at canal {0}!"
+    format canal
+    write -2 com 63
+    write 0 com 0
+    jump error always 0 0
+
+error6: # l'utilisateur veut lire ou ércire sur un serveur alors qu'il ne s'y est pas connecter 
+    write -2 com 63
+    write 0 com 0
+    print "error : no server was choose by the user"
+    jump error always 0 0
+
+error:
+    printflush message2

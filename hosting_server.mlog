@@ -1,0 +1,100 @@
+
+# protocole : le processeur se connecte au serveur principale et y inscrit son serveur
+# dans la premiere slot de son serveur il y écrit son noms (ex : floor(servX)*10^3+floor(servY) 
+# si x = 177 et y = 13 alors son nom sera 177013 ) enusuite il enregistrera son type ainsi que sa 
+# version
+
+set address 177013 # charge la configuration du serveur principale
+set type "basic serv"
+set ver "v1"
+ubind @flare
+set i 0
+
+search: # cherche le serveur a heberger  
+    getlink serv i
+    sensor servType serv @type
+    jump login equal servType @memory-cell
+    jump login equal servType @memory-bank
+    op add i i 1
+    jump error1 greaterThan i @links
+    jump search always 0 0
+
+login: # cherche le serveur l'unité de connexion 
+    set try 0
+    sensor flag @unit @flag
+    op add try try 1
+    jump sucsess1 equal flag address
+    jump error2 greaterThan try 24
+    jump login always 0 0
+
+sucsess1:
+    sensor x @unit @x
+    sensor y @unit @y
+
+    ucontrol getBlock x y 0 main_serv 0 # se connecte au serveur principale
+    sensor cap main_serv @memoryCapacity
+
+    set i 0
+
+    hosting: # cherche s'il y a de la place pour heberger son serveur 
+        read data main_serv i
+        jump hosted equal data -1
+        jump hosted equal data serv # <-- en cas de redemarage forcé par le joueur 
+        op add i i 1                # il se peut que le serveur soit encore enregistrer 
+        jump hosting lessThan i cap # et la ligne 42 permet d'éviter qu'il s'enregistre 2 fois
+        jump error3 always 0 0
+
+
+    hosted: # initialise son serveur 
+        set canal i
+        sensor sx serv @x
+        sensor sy serv @y
+
+        op floor fx sx
+        op floor fy sy
+        op mul fx fx 1000
+        op add servName fx fy
+
+        loop: # s'occupe de la maintenance du serveur 
+            write servName serv 0
+            write type serv 1
+            write ver serv 2
+            write serv main_serv canal
+
+            print "server : {0} hosted in the main server at the slot {1}."
+            format servName
+            format canal
+            printflush message1
+            print "type : {0},\nver : {1} "
+            format type
+            format ver
+            printflush message2
+            sensor shutdown switch1 @enabled
+            jump shutdown equal shutdown 1
+            jump loop always 0 0
+
+        shutdown: # permet de "déconnecter" son serveur 
+            print "server disconected"
+            printflush message1
+            write -1 main_serv canal
+            sensor shutdown switch1 @enabled
+            jump shutdown equal shutdown 1
+            end
+
+# les possible erreur que le processeur peut avoir 
+
+error1: # aucun serveur a héberger a été trouver, verifer si le processeur est relié a bock mémoire 
+    print "error : no server to host was found!"
+    jump error always 0 0
+
+error2: # ne trouve pas l'unité de connexion, verifier son flag ou si elle existe encore 
+    print "error : can't log to main serv with address : {0}!"
+    format address
+    jump error always 0 0
+
+error3: # il n'y plus de place pour héberger, faut le faire pour avoir 513 serveur 
+    print "error : there to many server to host this one!"
+    jump error always 0 0
+
+error:
+    printflush message1
