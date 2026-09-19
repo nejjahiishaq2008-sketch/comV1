@@ -1,0 +1,73 @@
+
+# a code that show all server in the map on a display 
+
+setup:
+
+    set mapw @mapw
+    set maph @maph
+
+    set screen display1
+    set com cell1
+
+    jump setup equal screen null
+    jump setup equal com null
+
+    sensor screen_x screen @displayWidth
+    sensor screen_y screen @displayHeight
+
+    op div ratio_x screen_x mapw
+    op div ratio_y screen_y maph
+
+
+get_main_serv:
+    write 1 com 0 # ask for the main server 
+    read rep com 0
+    jump get_main_serv equal rep 1
+    read fail com 63
+    jump get_main_serv equal fail 1
+    read main_serv com 1
+
+    sensor main_type main_serv @type
+    sensor mx main_serv @x
+    sensor my main_serv @y
+
+    op mul dmx mx ratio_x
+    op mul dmy my ratio_y
+
+start:
+    draw clear 0 0 0
+    draw col %ff0000
+    draw image dmx dmy main_type 10 0
+
+    set i 0
+
+    loop:
+        read serv main_serv i
+        sensor serv_type serv @type
+
+        jump do equal serv_type @memory-cell
+        jump do equal serv_type @memory-bank
+        jump pass always 0 0
+
+        do:
+            read name serv 0
+
+            op idiv sx name 1000
+            op mod sy name 1000
+
+            op mul dsx sx ratio_x
+            op mul dsy sy ratio_y
+
+            draw col %00e485
+
+            draw image dsx dsy serv_type 10 0
+
+
+        pass:
+            op add i i 1
+            jump draw equal i 512
+            jump loop always 0 0
+
+draw:
+    drawflush display1
+    jump start always 0

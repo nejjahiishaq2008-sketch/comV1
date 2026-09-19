@@ -7,24 +7,26 @@
 set address 177013 # charge la configuration du serveur principale
 set type "basic serv"
 set ver "v1"
-ubind @flare
 set i 0
 
 search: # cherche le serveur a heberger  
     getlink serv i
     sensor servType serv @type
-    jump login equal servType @memory-cell
-    jump login equal servType @memory-bank
+    jump setup_search equal servType @memory-cell
+    jump setup_search equal servType @memory-bank
     op add i i 1
     jump error1 greaterThan i @links
     jump search always 0 0
 
-login: # cherche le serveur l'unité de connexion 
+
+setup_search:
     set try 0
+login: # cherche le serveur l'unité de connexion 
+    ubind @flare
     sensor flag @unit @flag
     op add try try 1
     jump sucsess1 equal flag address
-    jump error2 greaterThan try 24
+    jump error2 equal try 24
     jump login always 0 0
 
 sucsess1:
