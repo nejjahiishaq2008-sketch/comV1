@@ -1,0 +1,48 @@
+# the command for the server navigation 
+
+setup: # check if every component is here 
+    set command cell1 
+    set up switch1
+    set down switch2
+    set select switch3
+    set back switch4
+    jump setup equal null command
+    jump setup equal null up
+    jump setup equal null down
+    jump setup equal null select
+    jump setup equal null back 
+
+loop: # the main code will check if on of the button was pressed 
+    sensor bool up @enabled
+    jump pass1 equal bool 0
+    control enabled up 0 
+    write 1 command 0
+
+    pass1:
+
+    sensor bool down @enabled        
+    jump pass2 equal bool 0
+    control enabled down 0
+    write 2 command 0 
+
+    pass2:
+    
+    sensor bool select @enabled
+    jump pass3 equal bool 0
+    control enabled select 0
+    write 3 command 0 
+
+    pass3:
+
+    sensor bool back @enabled
+    jump wait equal bool 0
+    control enabled back 0 
+    write 4 command 0
+
+    wait: # will give the information to the processor and wait it finish the instruction 
+        read order command 0
+        jump wait notEqual order 0 
+        jump loop always 
+
+
+

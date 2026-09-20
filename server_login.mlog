@@ -3,7 +3,7 @@
 # processeur et l'utilisateur 
 # liste des requêtes : 
 # com 0 0 --> attends  
-# com 0 1 --> send the main serv
+# com 0 1 --> send the main serv on com 1 
 # com 0 2 --> se connecte au serveur avec le nom sur com 1  
 # com 0 3 --> se connecte au serveur avec le canal sur com 1 
 # com 0 4 --> retourne la valeur lu sur le serveur actuelle a l'emplacement com 1 sur com2
@@ -30,6 +30,7 @@ login_to_main: # cherche l'unité de connexion
 
 
     sucsessed: # se connecte au serveur principale 
+        write 0 com 63 
         sensor mx @unit @x
         sensor my @unit @y
         ucontrol getBlock mx my 0 mainServ 0
@@ -141,6 +142,7 @@ error2: # ne trouve pas l'unité de connexion, verifiez son flag ou si elle exis
     print "error : can't login to the main server with address {0}"
     format address
     write -1 com 63
+    write 0 com 0 
     jump error always 0 0
 
 

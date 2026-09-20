@@ -1,0 +1,227 @@
+
+# with this you will be able to display not server but theire content on a screen and 
+# browse through the data 
+
+
+setup: # check if a every component is here 
+    set screen display1
+    set command cell1 # to recieve instrucion 
+    set com cell2 # to log to the server 
+    set ram cell3 # to store some information 
+
+    jump setup equal screen null
+    jump setup equal command null
+    jump setup equal com null
+    jump setup equal ram null 0
+
+    sensor dx screen @displayWidth # get the with and height of the screen 
+    sensor dy screen @displayHeight
+
+    op mul bx dx 0.3 # some math for the ui 
+    set min_bx 100
+
+    op min bx min_bx bx
+
+    op div mx dx 2
+    op div my dy 2
+
+    op idiv n_part dy 32
+    set fail 0
+
+ui_log: # will try to log the main server 
+    draw clear 0 0 0
+    draw col %000000
+    draw rect 0 0 dx dy
+    draw col %2ad90f
+    print "trying to login to server\n"
+    jump skip1 equal fail 0
+    print "fail : {0}" # diplay the number of fails if there are 
+    format fail
+
+    skip1:
+        draw print mx my @center
+        drawflush screen
+
+    log:
+        write 1 com 0
+        read rep com 0
+        jump log notEqual rep 0
+        read error com 63
+        jump next equal error 0
+        op add fail fail 1
+        jump ui_log always 0 0
+
+next: # setup some variable before start drawing the ui 
+    read main com 1
+    set cursor 0
+    set page 0
+    set current_name "main"
+    set current_serv main
+    set depth 0
+    write main ram 0
+
+loop: # the ui main code 
+    sensor current_type current_serv @type # <-- from here 
+    sensor cap current_type @memoryCapacity
+    op div page_max cap n_part
+    op floor page_max page_max
+    draw clear 0 0 0
+    draw col %0e0b76
+    draw rect 0 0 dx dy
+    draw col %072da9
+    draw rect 0 0 bx dy
+    draw col %000000
+    draw line bx 0 bx dy # <-- to here is the background 
+    print "server :\n{0}" # display some information like the server or page 
+    format current_name
+    draw print 10 dy @topLeft
+
+    print "page : {0}"
+    format page
+    draw print mx dy @top
+
+    set n 0 # some maths to display the "box" 
+    set y 0
+    set offset_x 5
+    set offset_y 5
+    op sub w dx bx
+    op sub w w offset_x
+    op sub w w offset_x
+    op sub h 32 offset_y
+    op sub h 32 offset_y
+
+
+    op sub i n_part 1
+    op mul slot page n_part
+    op add i i slot
+    op sub pos n_part 1
+
+    loop2: # the loop for the "box"
+        op add x bx offset_x
+        op add y' y offset_y
+
+        jump selected equal pos cursor
+        draw col %484dc2 # the color of the "box"  
+        jump not_select always
+
+        selected:
+            draw col %00a0a0 # the color of the "box" when the cursor is on it 
+
+        not_select:
+            draw rect x y' w h # the "box"
+            draw col %000000
+            draw stroke 2
+            draw lineRect x y' w h
+            jump skip greaterThanEq i cap # yeah it can display more box than there are slot
+            # in a server so we don't diplay text cuz the slot  
+            # cuz the slot doesn't exist 
+            op div mh h 2 # some maths to display on the screen the value stored in the server
+            op div mw w 2
+
+            op add mh mh y'
+            op add mw mw x
+
+            read data current_serv i
+            print "slot-{0} : {1}" # the text with the value
+            format i
+            format data
+            draw print mw mh @center
+
+        skip:
+            op add y y 32
+            op add n n 1
+            op sub i i 1
+            op sub pos pos 1
+            jump loop2 notEqual n n_part
+            drawflush screen
+
+
+    waiting: # now the ui is done the processor will wait for instrucion 
+        read order command 0
+        jump up equal order 1
+        jump down equal order 2
+        jump go_deeper equal order 3
+        jump go_back equal order 4
+
+        jump waiting always 0 0
+
+
+up: # move the cursor up 
+    jump change_page equal cursor 0 # if the cursor is at the top of the page --> move previous page
+    op sub cursor cursor 1 # the top of the page is 0 so if we subtract 1 to the cursor it goes up
+    write 0 command 0 # clear the instruction
+    jump loop always 0 0
+
+    change_page:
+        jump skip3 equal page 0 # if we're at the first page we won't do anything 
+        op sub page page 1 # same logic as the cursor the page 0 is the first 
+        set cursor 6 # set the cursor at bottom of the page 
+
+        skip3:
+            write 0 command 0
+            jump loop always 0 0
+
+
+down: # move the cursor down 
+    op sub n' n_part 1 # calculate the index of the last box of the page 
+    jump change_page2 equal cursor n' # for now it's the same as 'up:' but reverse since we want 
+    op add cursor cursor 1 # want to go down instead of up 
+    write 0 command 0
+    jump loop always 0 0
+
+    change_page2:
+        jump skip4 equal page page_max
+        op add page page 1
+        set cursor 0
+
+        skip4:
+            write 0 command 0
+            jump loop always 0 0
+
+
+go_deeper: # now we want to log the server that's stored in the selected box 
+    op add current_slot slot cursor # calculate the slot in the server 
+    read data current_serv current_slot # read and check if it's a server 
+    sensor type data @type
+    jump is_server equal type @memory-cell
+    jump is_server equal type @memory-bank
+    write 0 command 0 # if not we're doing nothing 
+    jump loop always 0 0
+
+
+    is_server: # if it is 
+        op add depth' depth 1
+        op add depth'' depth' 1
+        write current_serv ram depth # will save in ram the current server
+        write cursor ram depth' # the position of the cursor 
+        write page ram depth'' # and the current page 
+
+        set current_serv data # change the current server 
+        read current_name current_serv 0 # change the name 
+        set cursor 0 # reset the variable 
+        set page 0
+        write 0 command 0
+        op add depth depth 3 # 'depth' says how deep we are 
+        jump loop always 0 0
+
+
+go_back: # now we want to go back to the previous server 
+    jump pass equal depth 0 # if the current server is the main we skip 
+    op sub depth depth 3 # with the depth we can get the position in the ram
+    op add depth' depth 1 # of the last server 
+    op add depth'' depth' 1
+
+    read current_serv ram depth # load
+    read cursor ram depth' # load the position of the cursor 
+    read page ram depth'' # load the page 
+
+    jump not_main notEqual depth 0 # if th current server the not the main  
+    set current_name "main" # otherwise we set the server name as "main"
+    jump pass always 0 0
+
+    not_main: # we read the name of the current server 
+        read current_name current_serv 0
+
+    pass:
+        write 0 command 0 # clear the instruction 
+        jump loop always 0 0
