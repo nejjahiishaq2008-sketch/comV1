@@ -1,5 +1,5 @@
 # comV1
-some code to do communication at longue distance (the comment is french cuz i don't speak english)
+some code to do communication at longue distance (the comment are in mostly in french cuz i don't speak english)
 
 
 # how does it work? 
