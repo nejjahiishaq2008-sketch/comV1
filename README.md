@@ -18,3 +18,23 @@ will have to log to it
 
 that's all, there's no comunication protocol and for one only to type of server but if you're smart enough you will find a way to use in project
 you can also check [the schema](https://github.com/nejjahiishaq2008-sketch/comV1/blob/main/schema/serveur_schema_mindustry.png)
+
+# how to debug ?
+
+in the folder [display](https://github.com/nejjahiishaq2008-sketch/comV1/tree/main/display) you will find 2 files, [server_nav.mlog](https://github.com/nejjahiishaq2008-sketch/comV1/blob/main/display/server_nav.mlog) and [server_nav_command.mlog](https://github.com/nejjahiishaq2008-sketch/comV1/blob/main/display/server_nav.mlog) these code will display on a screen (it can have some issue if the screen is too small) the value that's stored on the server 
+
+to use it you have to place a processor first and to bind him 4 switch and a memory cell and put the code of [server_nav_command.mlog](https://github.com/nejjahiishaq2008-sketch/comV1/blob/main/display/server_nav.mlog)
+- the 1st switch is to move up
+- the 2nd one is to move down
+- the 3rd one is to log to the selected server
+- and the last one is to go back to the previous server
+
+then place a second processor, bind it to 3 memory cell and a screen (it will adapt to the size of the screen) and put the code of [server_nav.mlog](https://github.com/nejjahiishaq2008-sketch/comV1/blob/main/display/server_nav.mlog)
+- the 1st memory cell is the same memory cell of the command processor
+- the 2nd one is for login to the main server
+- the last one is used only by this processor 
+
+now the last part, place a processor with the code [server_login.mlog](https://github.com/nejjahiishaq2008-sketch/comV1/blob/main/server_login.mlog)
+and bind it with the second memory cell of the previous processor 
+
+when it's done enjoy what you've made 
